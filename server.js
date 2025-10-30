@@ -15,8 +15,17 @@ const io = new Server(server, {
 });
 
 // Middleware
-app.use(cors());
+app.use(cors({
+  origin: process.env.CLIENT_URL || 'http://localhost:5173',
+  credentials: true
+}));
 app.use(express.json());
+
+// Log all requests for debugging
+app.use((req, res, next) => {
+  console.log(`${req.method} ${req.path}`);
+  next();
+});
 
 // Make io available to routes
 app.set('io', io);
@@ -40,6 +49,30 @@ mongoose.connect(process.env.MONGODB_URI)
 // Health check
 app.get('/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Root endpoint
+app.get('/', (req, res) => {
+  res.json({
+    message: 'Live Code Auction API',
+    version: '1.0.0',
+    endpoints: {
+      auth: '/api/auth',
+      questions: '/api/questions',
+      admin: '/api/admin',
+      auction: '/api/auction',
+      scheduled: '/api/scheduled'
+    }
+  });
+});
+
+// 404 handler
+app.use((req, res) => {
+  res.status(404).json({
+    error: 'Not Found',
+    message: `Cannot ${req.method} ${req.path}`,
+    hint: 'Make sure you are using the correct API endpoint with /api prefix'
+  });
 });
 
 const PORT = process.env.PORT || 5000;
